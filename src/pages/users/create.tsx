@@ -55,7 +55,6 @@ export default function CreateUser() {
           created_at: new Date(),
         },
       });
-
       return response.data.user;
     },
     {
