@@ -1,20 +1,16 @@
 import {
   Flex,
   Button,
-  Stack,
-  useColorModeValue,
-  VStack,
-  Box,
+  Stack
 } from "@chakra-ui/react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-
-import { Input } from "../components/Form/Input";
+import { Input } from "components/Form/Input";
 import { useContext } from "react";
-import { AuthContext } from "../contexts/AuthContext";
-import { withSSRGuest } from "../utils/withSSRGuest";
-import { ColorModeSwitcher } from "../components/ColorModeSwtich";
+import { AuthContext } from "contexts/AuthContext";
+import { withSSRGuest } from "utils/withSSRGuest";
+import { generalConstants } from "constants/general";
 
 type SignInFormData = {
   email: string;
@@ -30,7 +26,7 @@ export default function SignIn() {
   const { register, handleSubmit, formState } = useForm({
     resolver: yupResolver(signInFormSchema),
   });
-  const { signIn } = useContext(AuthContext);
+  const { signIn, loading } = useContext(AuthContext);
 
   const handleSignIn: SubmitHandler<SignInFormData> = async (values) => {
     await signIn(values);
@@ -56,14 +52,18 @@ export default function SignIn() {
             name="email"
             type="email"
             label="E-mail"
+            isDisabled={loading}
             error={formState.errors.email}
+            maxLength={generalConstants.limitShortText}
             {...register("email")}
           />
           <Input
             name="password"
             type="password"
             label="Senha"
+            isDisabled={loading}
             error={formState.errors.password}
+            maxLength={generalConstants.limitShortText}
             {...register("password")}
           />
         </Stack>
@@ -72,7 +72,8 @@ export default function SignIn() {
           mt="6"
           colorScheme="teal"
           size="lg"
-          isLoading={formState.isSubmitting}
+          isLoading={loading}
+          isDisabled={loading}
         >
           Entrar
         </Button>

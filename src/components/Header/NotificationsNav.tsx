@@ -1,6 +1,6 @@
 import { HStack, Icon } from "@chakra-ui/react";
 import { RiNotificationLine } from "react-icons/ri";
-import { ColorModeSwitcher } from "../ColorModeSwtich";
+import { ColorModeSwitcher } from "components/ColorModeSwtich";
 
 export function NotificationsNav() {
   return (

@@ -1,18 +1,15 @@
 import { createContext, ReactNode, useEffect, useState } from "react";
 import { setCookie, parseCookies, destroyCookie } from "nookies";
 import Router from "next/router";
-import { api } from "../services/apiClient";
-
-type SignInCredentials = {
-  email: string;
-  password: string;
-};
+import { signInService, verifySessionService } from 'services/auth.service';
+import { IUserLogin } from 'models/userLogin.model';
 
 type AuthContextData = {
-  signIn: (credentials: SignInCredentials) => Promise<void>;
+  signIn: (credentials: IUserLogin) => Promise<void>;
   signOut: () => void;
   user: User;
   isAuthenticated: boolean;
+  loading: boolean;
 };
 
 type AuthProviderProps = {
@@ -43,7 +40,8 @@ export function signOut(broadcast: boolean = true) {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User>();
-  const isAuthenticated = !!user; //!! se tiver vazio false se n true
+  const [loading, setLoading] = useState<boolean>(false);
+  const isAuthenticated = !!user;
 
   useEffect(() => {
     authChannel = new BroadcastChannel("auth");
@@ -52,11 +50,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         case "signOut":
           signOut(false);
           break;
-
-        // case "signIn":
-        //   Router.push('/dashboard');
-        //   break;
-
         default:
           break;
       }
@@ -66,60 +59,58 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const { "nextauth.token": token } = parseCookies();
 
-    if (token) {
-      api
-        .get("/me")
-        .then((response) => {
-          const { email, permissions, roles, name } = response.data;
+    async function verifySession () {
+      const response = await verifySessionService();
 
-          setUser({ email, permissions, roles, name });
-        })
-        .catch(() => {
-          signOut();
-        });
+      if (response) {
+        const { email, permissions, roles, name } = response;
+    
+        setUser({ email, permissions, roles, name });
+
+        return;
+      }
+
+      signOut();
     }
-  }, []); //exect apenas 1 vez
 
-  async function signIn({ email, password }: SignInCredentials) {
-    try {
-      const response = await api.post("/sessions", {
-        email,
-        password,
-      });
+    if (token) {
+      verifySession();
+    }
+  }, []);
 
-      const { token, refreshToken, permissions, roles, name } = response.data;
+  async function signIn({ email, password }: IUserLogin) {
+    setLoading(true);
 
-      //local storage - fecha e mantem, um pequeno problema se usar next
-      //session storage - nao fica disponivel em outras sessoes, fechou acabou
-      //cookies - melhor opcao com next
-      console.log('data', response.data)
+    const response = await signInService({email, password});
+    
+    setLoading(false);
+
+    if (response) {
+      const { token, refreshToken, permissions, roles, name } = response;
+  
       setCookie(undefined, "nextauth.token", token, {
         maxAge: 60 * 60 * 24 * 30, //30 dias
         path: "/",
       });
+      
       setCookie(undefined, "nextauth.refreshToken", refreshToken, {
         maxAge: 60 * 60 * 24 * 30, //30 dias
         path: "/",
       });
-
+  
       setUser({
         email,
         permissions,
         roles,
         name,
       });
-      api.defaults.headers["Authorization"] = `Bearer ${token}`;
-
-      //authChannel.postMessage("signIn");
 
       Router.push("/dashboard");
-    } catch (err) {
-      console.log(err);
     }
   }
 
   return (
-    <AuthContext.Provider value={{ signIn, signOut, isAuthenticated, user }}>
+    <AuthContext.Provider value={{ signIn, signOut, isAuthenticated, user, loading }}>
       {children}
     </AuthContext.Provider>
   );

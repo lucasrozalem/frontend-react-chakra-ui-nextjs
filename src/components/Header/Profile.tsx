@@ -15,7 +15,7 @@ import {
 } from "@chakra-ui/react";
 import React, { useContext } from "react";
 import { RiMore2Fill } from "react-icons/ri";
-import { AuthContext } from "../../contexts/AuthContext";
+import { AuthContext } from "contexts/AuthContext";
 
 interface ProfileProps {
   showProfileData?: boolean;
